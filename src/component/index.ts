@@ -3,50 +3,38 @@ import {
     apply, url, applyTemplates, move,
     chain, mergeWith, externalSchematic, MergeStrategy, SchematicContext
 } from '@angular-devkit/schematics';
-import * as fs from 'fs';
-import * as path from 'path';
 
-import { strings, normalize, experimental } from '@angular-devkit/core';
-import { ComponentOptions } from './component';
-import { dasherize } from '@angular-devkit/core/src/utils/strings';
+import { strings, normalize } from '@angular-devkit/core';
+import { ComponentOptions } from './schema';
+import { WorkspaceSchema } from '@angular-devkit/core/src/experimental/workspace';
 
 
 export function component(options: ComponentOptions): Rule {
     return (tree: Tree, _context: SchematicContext) => {
-        const workspaceConfig = tree.read('/angular.json');
-        // Check for angular.json - if not - throw error
-        if (!workspaceConfig) {
+        if (!tree.exists('/angular.json')) {
             throw new SchematicsException('Could not find Angular workspace configuration');
         }
 
-        const workspaceContent = workspaceConfig.toString();
-        const workspace: experimental.workspace.WorkspaceSchema = JSON.parse(workspaceContent);
-        if (!options.project) {
-            options.project = workspace.defaultProject;
-        }
+        const workspaceContent = tree.read('/angular.json')!.toString();
+        const workspace: WorkspaceSchema = JSON.parse(workspaceContent);
 
-        const projectName = options.project as string;
-        const project = workspace.projects[projectName];
-        const projectType = project.projectType === 'application' ? 'app' : 'lib';
+        if (!workspace.defaultProject) {
+            throw new SchematicsException('Could not find default project!');
+        }
+        const project = workspace.projects[workspace.defaultProject];
+        const outputPath = `${project.sourceRoot}/${project.prefix}/${options.name}`;
 
-        if (options.path === undefined) {
-            options.path = `${project.sourceRoot}/${projectType}`;
-        }
-        if (!fs.existsSync(path.join(__dirname, `files/${options.type}`))) {
-            throw new SchematicsException('Could not find component files')
-        }
-        const importPath = getImportPath(options.name);
-        const outputPath = importPath.folder ?
-            `${options.path}/${dasherize(importPath.folder)}/${importPath.fileName}`
-            : `${options.path}/${importPath.fileName}`;
+        // Create a separate Source from the specified templates
         const templateSource = apply(url(`./files/${options.type}`), [
             applyTemplates({
                 classify: strings.classify,
                 dasherize: strings.dasherize,
-                name: importPath.fileName
+                name: options.name
             }),
-            move(normalize(outputPath as string))
+            move(normalize(outputPath))
         ]);
+
+
         return chain([
             // Create a component using Angular's component schematic
             externalSchematic('@schematics/angular', 'component', { name: options.name }),
@@ -54,10 +42,4 @@ export function component(options: ComponentOptions): Rule {
             mergeWith(templateSource, MergeStrategy.Overwrite)
         ]);
     };
-}
-
-function getImportPath(path: string): { folder: string, fileName: string } {
-    const split = path.split("/");
-    const result = { fileName: split.splice(split.length - 1, 1)[0], folder: split.join('/') };
-    return result;
 }
