@@ -1,0 +1,28 @@
+:host {
+    width: 320px;
+    height: 180px;
+    display: flex;
+    flex-flow: row;
+}
+
+.person {
+    display: flex;
+    flex-flow: column;
+
+    &__title {
+        border: 1px solid black;
+        font-weight: 600;
+        font-size: 18px;
+    }
+
+    &__name {
+        border: 1px solid black;
+        font-weight: 800;
+        font-size: 24px;
+    }
+}
+
+.description {
+    border: 1px dashed black;
+    font-style: italic;
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "intro-schematic": {
+      "description": "A blank schematic.",
+      "factory": "./intro-schematic/index#introSchematic"
+    },
+    "component": {
+      "description": "Creates a component.",
+      "factory": "./component/index#component",
+      "schema": "./component/schema.json"
+    }
+  }
+}
